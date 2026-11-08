@@ -130,7 +130,10 @@ From: ubuntu:26.04
     fetch https://github.com/The-OpenROAD-Project/OpenROAD.git "$OPENROAD_REF" OpenROAD
     cd "$SRC/OpenROAD"
     # Installs bazelisk + the runtime libraries needed for the Qt GUI
-    ./etc/DependencyInstaller.sh -bazel
+    wget https://github.com/bazelbuild/bazelisk/releases/download/v1.30.0/bazelisk-linux-amd64
+    mv bazelisk-linux-amd64 $PREFIX/bin/bazelisk
+    chmod +x $PREFIX/bin/bazelisk
+    #./etc/DependencyInstaller.sh -bazel
     export OPENROAD_VERSION="$OPENROAD_REF"
     BAZEL_ROOT=/tmp/bazel-root
     bazelisk --output_user_root="$BAZEL_ROOT" run --stamp \
