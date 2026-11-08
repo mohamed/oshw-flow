@@ -2,12 +2,13 @@
 # oshw-flow.def  -  Apptainer definition for an open-source EDA tutorial image
 #
 # Base:  Ubuntu 26.04 LTS (latest Ubuntu release)
-# Tools (built from source on GitHub):
+# Tools (built from source on git):
 #   verilator  v5.054   https://github.com/verilator/verilator
 #   yosys      v0.70    https://github.com/YosysHQ/yosys
 #   OpenSTA    master   https://github.com/parallaxsw/OpenSTA        (no tags)
 #   OpenROAD   26Q4     https://github.com/The-OpenROAD-Project/OpenROAD
 #   xschem     3.4.7    https://github.com/StefanSchippers/xschem
+#   Ngspice    47       https://git.code.sf.net/p/ngspice/ngspice
 #   magic      8.3.695  https://github.com/rtimothyedwards/magic
 #   netgen     1.5.327  https://github.com/rtimothyedwards/netgen
 #
@@ -20,25 +21,26 @@
 # depending on core count.
 #
 # To bump a version, change the *_REF variable below. List a repo's tags with:
-#   git ls-remote --tags --refs https://github.com/<owner>/<repo>.git
+#   git ls-remote --tags --refs <repo_url>
 # =============================================================================
 
 Bootstrap: docker
 From: ubuntu:26.04
 
 %labels
-    Description  Open-source digital/analog EDA tools for teaching
+    Description  Open-source digital/analog EDA tools
     Verilator    v5.054
     Yosys        v0.70
     OpenSTA      master
     OpenROAD     26Q4
     Xschem       3.4.7
     Magic        8.3.695
+    Ngspice      47
     Netgen       1.5.327
 
 %help
     Open-source EDA tools: verilator, yosys, sta (OpenSTA), openroad,
-    xschem, magic, netgen.
+    xschem, magic, netgen, Ngspice, KLayout, GTKWave.
 
     Usage:
       apptainer run   oshw-flow.sif              # interactive shell
@@ -63,6 +65,7 @@ From: ubuntu:26.04
     CUDD_REF=cudd-3.0.0          # required by OpenSTA
     OPENROAD_REF=26Q4
     XSCHEM_REF=3.4.7
+    NGSPICE_REF=ngspice-47
     MAGIC_REF=8.3.695
     NETGEN_REF=1.5.327
 
@@ -79,17 +82,18 @@ From: ubuntu:26.04
 
     # ---- System packages ----------------------------------------------------
     apt-get update
-    apt-get install -y --no-install-recommends \
+    apt-get install -y \
         build-essential git ca-certificates curl wget \
         autoconf automake libtool m4 pkg-config cmake \
-        python3 python3-dev perl help2man gawk \
-        flex bison libfl-dev libfl2 \
+        python3 python3-dev perl help2man gawk libxaw7-dev \
+        flex bison libfl-dev libfl2 fftw-dev libboost-all-dev \
         zlib1g-dev liblz4-dev libreadline-dev libffi-dev libncurses-dev \
-        tcl-dev tk-dev tcl-tclreadline swig libeigen3-dev \
+        tcl-dev tk-dev tcl-tclreadline swig libeigen3-dev liblapack-dev \
         libx11-dev libx11-xcb-dev libxpm-dev libxrender-dev libxcb1-dev \
-        libcairo2-dev libglu1-mesa-dev mesa-common-dev \
-        libgl1-mesa-dri fonts-dejavu-core \
-        graphviz xdot
+        libcairo2-dev libglu1-mesa-dev mesa-common-dev libgtest-dev \
+        libgl1-mesa-dri fonts-dejavu-core libnetcdf-dev libgmock-dev \
+        gfortran openmpi-bin libopenmpi-dev libopenblas-dev \
+        graphviz xdot gtkwave klayout
 
     # ---- Verilator ----------------------------------------------------------
     fetch https://github.com/verilator/verilator.git "$VERILATOR_REF" verilator
@@ -123,20 +127,28 @@ From: ubuntu:26.04
     cmake --install build
 
     # ---- OpenROAD (Bazel is its supported build system) ---------------------
-#    fetch https://github.com/The-OpenROAD-Project/OpenROAD.git "$OPENROAD_REF" OpenROAD
-#    cd "$SRC/OpenROAD"
-#    # Installs bazelisk + the runtime libraries needed for the Qt GUI
-#    ./etc/DependencyInstaller.sh -bazel
-#    export OPENROAD_VERSION="$OPENROAD_REF"
-#    BAZEL_ROOT=/tmp/bazel-root
-#    bazelisk --output_user_root="$BAZEL_ROOT" run --stamp \
-#        --//:platform=gui //:install -- "$PREFIX"
-#    bazelisk --output_user_root="$BAZEL_ROOT" shutdown || true
-#    rm -rf "$BAZEL_ROOT" /root/.cache/bazelisk /root/.cache/bazel
+    fetch https://github.com/The-OpenROAD-Project/OpenROAD.git "$OPENROAD_REF" OpenROAD
+    cd "$SRC/OpenROAD"
+    # Installs bazelisk + the runtime libraries needed for the Qt GUI
+    ./etc/DependencyInstaller.sh -bazel
+    export OPENROAD_VERSION="$OPENROAD_REF"
+    BAZEL_ROOT=/tmp/bazel-root
+    bazelisk --output_user_root="$BAZEL_ROOT" run --stamp \
+        --//:platform=gui //:install -- "$PREFIX"
+    bazelisk --output_user_root="$BAZEL_ROOT" shutdown || true
+    rm -rf "$BAZEL_ROOT" /root/.cache/bazelisk /root/.cache/bazel
 
     # ---- xschem -------------------------------------------------------------
     fetch https://github.com/StefanSchippers/xschem.git "$XSCHEM_REF" xschem
     cd "$SRC/xschem"
+    ./configure --prefix="$PREFIX"
+    make -j"$JOBS"
+    make install
+
+    # ---- Ngspice -------------------------------------------------------------
+    fetch https://git.code.sf.net/p/ngspice/ngspice "$NGSPICE_REF" ngspice
+    cd "$SRC/ngspice"
+    ./autogen.sh
     ./configure --prefix="$PREFIX"
     make -j"$JOBS"
     make install
@@ -151,7 +163,7 @@ From: ubuntu:26.04
     # ---- netgen -------------------------------------------------------------
     fetch https://github.com/rtimothyedwards/netgen.git "$NETGEN_REF" netgen
     cd "$SRC/netgen"
-    ./configure --prefix="$PREFIX"
+    CFLAGS="-std=gnu17" ./configure --prefix="$PREFIX"
     make
     make install
 
@@ -171,10 +183,10 @@ From: ubuntu:26.04
 
 %test
     set -e
-    for t in verilator yosys sta xschem magic netgen; do
+    for t in verilator yosys sta xschem ngspice magic netgen; do
         command -v "$t" >/dev/null || { echo "MISSING: $t"; exit 1; }
     done
     verilator --version
     yosys -V
-#    openroad -version
+    openroad -version
     echo "All tools present."

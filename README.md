@@ -15,5 +15,6 @@ apptainer run oshw-flow.sif
 - [OpenSTA](https://github.com/parallaxsw/OpenSTA)
 - [OpenROAD](https://github.com/The-OpenROAD-Project/OpenROAD)
 - [xschem](https://github.com/StefanSchippers/xschem)
+- [ngspice](https://ngspice.sourceforge.io/)
 - [magic](https://github.com/rtimothyedwards/magic)
 - [netgen](https://github.com/rtimothyedwards/netgen)
