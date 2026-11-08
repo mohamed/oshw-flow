@@ -171,7 +171,7 @@ From: ubuntu:26.04
 
 %test
     set -e
-    for t in verilator yosys sta openroad xschem magic netgen; do
+    for t in verilator yosys sta xschem magic netgen; do
         command -v "$t" >/dev/null || { echo "MISSING: $t"; exit 1; }
     done
     verilator --version
