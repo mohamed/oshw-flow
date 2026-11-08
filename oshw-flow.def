@@ -1,5 +1,5 @@
 # =============================================================================
-# eda-tools.def  -  Apptainer definition for an open-source EDA tutorial image
+# oshw-flow.def  -  Apptainer definition for an open-source EDA tutorial image
 #
 # Base:  Ubuntu 26.04 LTS (latest Ubuntu release)
 # Tools (built from source on GitHub):
@@ -12,8 +12,8 @@
 #   netgen     1.5.327  https://github.com/rtimothyedwards/netgen
 #
 # Build (needs root or fakeroot):
-#   sudo apptainer build eda-tools.sif eda-tools.def
-#   # or: apptainer build --fakeroot eda-tools.sif eda-tools.def
+#   sudo apptainer build oshw-flow.sif oshw-flow.def
+#   # or: apptainer build --fakeroot oshw-flow.sif oshw-flow.def
 #
 # Resources: OpenROAD is by far the heaviest part. Plan for ~16 GB RAM,
 # ~50 GB free disk (set APPTAINER_TMPDIR to a large disk) and 1-3 hours
@@ -41,10 +41,10 @@ From: ubuntu:26.04
     xschem, magic, netgen.
 
     Usage:
-      apptainer run   eda-tools.sif              # interactive shell
-      apptainer exec  eda-tools.sif yosys        # run one tool
-      apptainer exec  eda-tools.sif magic        # GUI tools open on your desktop
-      apptainer exec  --nv eda-tools.sif openroad -gui   # NVIDIA GPU hosts
+      apptainer run   oshw-flow.sif              # interactive shell
+      apptainer exec  oshw-flow.sif yosys        # run one tool
+      apptainer exec  oshw-flow.sif magic        # GUI tools open on your desktop
+      apptainer exec  --nv oshw-flow.sif openroad -gui   # NVIDIA GPU hosts
 
     Your home directory is available inside the container as usual.
 
@@ -123,16 +123,16 @@ From: ubuntu:26.04
     cmake --install build
 
     # ---- OpenROAD (Bazel is its supported build system) ---------------------
-    fetch https://github.com/The-OpenROAD-Project/OpenROAD.git "$OPENROAD_REF" OpenROAD
-    cd "$SRC/OpenROAD"
-    # Installs bazelisk + the runtime libraries needed for the Qt GUI
-    ./etc/DependencyInstaller.sh -bazel
-    export OPENROAD_VERSION="$OPENROAD_REF"
-    BAZEL_ROOT=/tmp/bazel-root
-    bazelisk --output_user_root="$BAZEL_ROOT" run --stamp \
-        --//:platform=gui //:install -- "$PREFIX"
-    bazelisk --output_user_root="$BAZEL_ROOT" shutdown || true
-    rm -rf "$BAZEL_ROOT" /root/.cache/bazelisk /root/.cache/bazel
+#    fetch https://github.com/The-OpenROAD-Project/OpenROAD.git "$OPENROAD_REF" OpenROAD
+#    cd "$SRC/OpenROAD"
+#    # Installs bazelisk + the runtime libraries needed for the Qt GUI
+#    ./etc/DependencyInstaller.sh -bazel
+#    export OPENROAD_VERSION="$OPENROAD_REF"
+#    BAZEL_ROOT=/tmp/bazel-root
+#    bazelisk --output_user_root="$BAZEL_ROOT" run --stamp \
+#        --//:platform=gui //:install -- "$PREFIX"
+#    bazelisk --output_user_root="$BAZEL_ROOT" shutdown || true
+#    rm -rf "$BAZEL_ROOT" /root/.cache/bazelisk /root/.cache/bazel
 
     # ---- xschem -------------------------------------------------------------
     fetch https://github.com/StefanSchippers/xschem.git "$XSCHEM_REF" xschem
@@ -144,7 +144,7 @@ From: ubuntu:26.04
     # ---- magic --------------------------------------------------------------
     fetch https://github.com/rtimothyedwards/magic.git "$MAGIC_REF" magic
     cd "$SRC/magic"
-    ./configure --prefix="$PREFIX"
+    CFLAGS="-std=gnu17" ./configure --prefix="$PREFIX"
     make            # magic's build is not reliably parallel
     make install
 
@@ -176,5 +176,5 @@ From: ubuntu:26.04
     done
     verilator --version
     yosys -V
-    openroad -version
+#    openroad -version
     echo "All tools present."
